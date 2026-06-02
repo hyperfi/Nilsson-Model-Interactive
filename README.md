@@ -7,6 +7,15 @@ An interactive, real-time web visualization tool for the **Nilsson Model** (defo
 ## 🌟 Features
 
 *   **Real-time Quantum State Calculations:** Computes single-particle eigenstates on-the-fly by diagonalizing the Nilsson Hamiltonian using a Jacobi eigenvalue solver written in pure JavaScript.
+*   **Proton vs. Neutron Physics:** Toggle between Proton and Neutron modes dynamically with distinct single-particle parameters ($\kappa, \mu$) to observe spin-orbit splitting differences.
+*   **Multiple Parameter Sets:** Select from four classic phenomenological parameter sets via a custom styled glassmorphic dropdown:
+    *   *Lund Universal (Default):* Standard general parameters covering most mass regions.
+    *   *Rare Earth ($A \approx 150 - 180$):* Optimized for highly deformed rare-earth nuclei.
+    *   *Actinides ($A \approx 250$):* Fine-tuned for actinides and superheavy nuclei.
+    *   *Light Nuclei ($A \approx 20 - 40$):* Simplified model with zero orbit-orbit coupling ($\mu = 0$).
+*   **3D Nucleus Shape Viewer:** A floating, precessing 3D spheroid widget morphing in real time (oblate $\rightarrow$ spherical $\rightarrow$ prolate) in sync with the deformation slider $\delta$. Built with a lightweight, high-performance canvas engine utilizing custom radial gradients and depth-sorted mesh gridlines (faint back lines, solid front lines).
+*   **Density of States (DOS) Overlay:** Toggle a translucent, vertical Gaussian-smoothed KDE curve along the energy axis to immediately identify shell gap valleys (low DOS) and dense crossings (high DOS).
+*   **Deformation Reset Gesture:** Double-clicking the slider label or the numeric read-out text instantly resets the quadrupole deformation $\delta$ back to `0.000`.
 *   **Interactive Quadrupole Deformation ($\delta$):** Adjust the deformation parameters dynamically with a slider to observe level splitting and crossing (Jahn-Teller effect / nuclear shape deformation).
 *   **Mass Number ($A$) Scaling:** Dynamically scales the oscillator frequency $\hbar\omega_0 \approx 41 A^{-1/3}$ MeV as you modify the mass number.
 *   **Nucleon Filling Representation:** Input the number of nucleons ($N$) to see how energy levels are filled according to the Pauli exclusion principle (modeled as twin orbital dots on filled levels).
