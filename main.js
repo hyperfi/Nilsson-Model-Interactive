@@ -1,4 +1,4 @@
-import { init, computeData, toggleZoom, zoomOut, resetView, draw, resize, S } from './render.js';
+import { init, computeData, toggleZoom, zoomOut, resetView, draw, resize, S, showActiveStateCard } from './render.js';
 
 // Dynamic UI controls relocation layout wrapper
 function arrangeControls() {
@@ -118,6 +118,86 @@ async function startApp() {
         S.unit = this.value; 
         draw(); 
     });
+
+    // Custom Parameter Set Dropdown Selection
+    const customParamSet = document.getElementById('customParamSet');
+    if (customParamSet) {
+        const trigger = customParamSet.querySelector('.custom-select-trigger');
+        const triggerText = trigger.querySelector('span');
+        const options = customParamSet.querySelectorAll('.custom-option');
+
+        trigger.addEventListener('click', (e) => {
+            customParamSet.classList.toggle('open');
+            e.stopPropagation();
+        });
+
+        options.forEach(opt => {
+            opt.addEventListener('click', function() {
+                options.forEach(o => o.classList.remove('selected'));
+                this.classList.add('selected');
+                triggerText.textContent = this.textContent;
+                customParamSet.classList.remove('open');
+                
+                S.paramSet = this.getAttribute('data-value');
+                computeData();
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            customParamSet.classList.remove('open');
+        });
+    }
+
+    // Nucleon Type Toggle
+    const nucleonBtns = document.querySelectorAll('#nucleonToggle .toggle-btn');
+    nucleonBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            nucleonBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            S.nucleonType = this.getAttribute('data-val');
+            computeData();
+        });
+    });
+
+    // Density of States (DOS) overlay toggle
+    const btnToggleDOS = document.getElementById('btnToggleDOS');
+    if (btnToggleDOS) {
+        btnToggleDOS.addEventListener('click', () => {
+            S.showDOS = !S.showDOS;
+            btnToggleDOS.classList.toggle('active', S.showDOS);
+            draw();
+        });
+    }
+
+    // 3D Shape Viewer expand on click
+    const shapeViewerContainer = document.getElementById('shape-viewer-container');
+    if (shapeViewerContainer) {
+        shapeViewerContainer.addEventListener('click', () => {
+            shapeViewerContainer.classList.toggle('expanded');
+        });
+    }
+
+    // Double-click delta labels/displays to reset value to 0
+    const dvText = document.getElementById('dv');
+    const dsLabel = document.querySelector('label[for="ds"]');
+    const dsSlider = document.getElementById('ds');
+
+    function resetDeltaToZero() {
+        if (!dsSlider) return;
+        S.delta = 0;
+        dsSlider.value = 0;
+        if (dvText) {
+            dvText.textContent = 'δ = 0.000';
+        }
+        if (S.selected) {
+            showActiveStateCard(S.selected, 0);
+        }
+        draw();
+    }
+
+    if (dvText) dvText.addEventListener('dblclick', resetDeltaToZero);
+    if (dsLabel) dsLabel.addEventListener('dblclick', resetDeltaToZero);
 
     // Initial controls layout arrangement
     arrangeControls();

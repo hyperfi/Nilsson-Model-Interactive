@@ -47,19 +47,41 @@
                     <div id="drawer-controls-placeholder">
                         <div id="navbar-controls-group">
                             <div class="control-item">
-                                <label for="inpA">Mass Number (A)</label>
+                                <label>Nucleon Type</label>
+                                <div class="toggle-group" id="nucleonToggle">
+                                    <button class="toggle-btn active" data-val="proton">Proton</button>
+                                    <button class="toggle-btn" data-val="neutron">Neutron</button>
+                                </div>
+                            </div>
+                            <div class="control-item">
+                                <label for="inpA">Mass (A)</label>
                                 <input type="number" id="inpA" value="80" min="1" max="300">
                             </div>
                             <div class="control-item">
-                                <label for="selUnit">Energy Units</label>
+                                <label for="selUnit">Units</label>
                                 <select id="selUnit">
                                     <option value="hw0">ℏω₀</option>
                                     <option value="MeV">MeV</option>
                                 </select>
                             </div>
                             <div class="control-item">
-                                <label for="ni">Nucleon Number (N)</label>
+                                <label for="ni">Nucleons (N)</label>
                                 <input type="number" id="ni" value="28" min="0" max="500">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="control-item" style="margin-top: 14px;">
+                        <label>Parameter Set (κ, μ)</label>
+                        <div class="custom-select" id="customParamSet">
+                            <div class="custom-select-trigger">
+                                <span>Lund Universal (Default)</span>
+                                <div class="arrow"></div>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-option selected" data-value="universal">Lund Universal (Default)</div>
+                                <div class="custom-option" data-value="rare_earth">Rare Earth (A ≈ 150 - 180)</div>
+                                <div class="custom-option" data-value="actinide">Actinides (A ≈ 250)</div>
+                                <div class="custom-option" data-value="light_sd">Light Nuclei (A ≈ 20 - 40)</div>
                             </div>
                         </div>
                     </div>
@@ -97,6 +119,14 @@
             <div id="overlay">
                 <div class="loader"></div>
                 <span>Computing Quantum States...</span>
+            </div>
+
+            <!-- Floating DOS Toggle Button -->
+            <button class="canvas-floating-btn" id="btnToggleDOS" title="Toggle Density of States Overlay">📊 DOS Overlay</button>
+
+            <!-- Floating 3D Spheroid Viewer -->
+            <div id="shape-viewer-container" title="Interactive 3D Nucleus Spheroid (Tap to Expand)">
+                <canvas id="shapeCv" width="160" height="160"></canvas>
             </div>
 
             <!-- Floating Slider Panel (Primary control for Deformation) -->

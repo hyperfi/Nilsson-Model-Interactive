@@ -4,7 +4,8 @@ import { nilssonEnergies, sphericalStates, MAGIC, calcSphericalStates } from './
 export const S = {
     tracks: null, dGrid: [], hw0: 1, fullDMin: -0.4, fullDMax: 0.55, fullYMin: 1.9, fullYMax: 5.7,
     vDMin: -0.4, vDMax: 0.55, vYMin: 1.9, vYMax: 5.7, zoomHist: [], zoomMode: false, zoomDrag: null,
-    delta: 0, N: 28, hover: null, selected: null, unit: 'hw0'
+    delta: 0, N: 28, hover: null, selected: null, nucleonType: 'proton', showDOS: false, unit: 'hw0',
+    paramSet: 'universal'
 };
 
 let cv = null, ctx = null;
@@ -68,6 +69,56 @@ function _draw() {
     ctx.lineWidth = 0.5; ctx.strokeStyle = '#161b22';
     for (let d = Math.ceil(S.vDMin / gSD) * gSD; d <= S.vDMax + 1e-9; d += gSD) { let x = cpx(d); ctx.beginPath(); ctx.moveTo(x, M.T); ctx.lineTo(x, M.T + pH); ctx.stroke(); }
     for (let eS = Math.ceil((S.vYMin * uScale) / gSE_scaled) * gSE_scaled; eS <= (S.vYMax * uScale) + 1e-9; eS += gSE_scaled) { let y = cpy(eS / uScale); ctx.beginPath(); ctx.moveTo(M.L, y); ctx.lineTo(M.L + pW, y); ctx.stroke(); }
+
+    // Density of States overlay
+    if (S.showDOS) {
+        let ySteps = 150;
+        let dosVals = [];
+        let maxDOS = 0.01;
+        for (let i = 0; i <= ySteps; i++) {
+            let eVal = S.vYMin + (i / ySteps) * (S.vYMax - S.vYMin);
+            let val = getDOS(eVal, levs);
+            dosVals.push({ eVal, val });
+            if (val > maxDOS) maxDOS = val;
+        }
+        let maxW = Math.min(80, pW * 0.25);
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(M.L, M.T, pW, pH);
+        ctx.clip();
+        
+        // Fill area
+        ctx.beginPath();
+        ctx.moveTo(M.L, cpy(dosVals[0].eVal));
+        for (let i = 0; i <= ySteps; i++) {
+            let y = cpy(dosVals[i].eVal);
+            let x = M.L + (dosVals[i].val / maxDOS) * maxW;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo(M.L, cpy(dosVals[ySteps].eVal));
+        ctx.closePath();
+        
+        let dosGrad = ctx.createLinearGradient(M.L, 0, M.L + maxW, 0);
+        dosGrad.addColorStop(0, 'rgba(63, 185, 80, 0.22)');
+        dosGrad.addColorStop(1, 'rgba(63, 185, 80, 0.0)');
+        ctx.fillStyle = dosGrad;
+        ctx.fill();
+        
+        // Stroke outline
+        ctx.beginPath();
+        ctx.moveTo(M.L + (dosVals[0].val / maxDOS) * maxW, cpy(dosVals[0].eVal));
+        for (let i = 1; i <= ySteps; i++) {
+            let y = cpy(dosVals[i].eVal);
+            let x = M.L + (dosVals[i].val / maxDOS) * maxW;
+            ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = 'rgba(63, 185, 80, 0.7)';
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+        
+        ctx.restore();
+    }
 
     for (let pass of [0, 1]) {
         for (let [lbl, tr] of Object.entries(S.tracks)) {
@@ -246,9 +297,12 @@ export function computeData() {
         S.delta = Math.max(dMin, Math.min(dMax, 0)); sl.value = S.delta;
         document.getElementById('dv').textContent = '\u03b4 = ' + S.delta.toFixed(3);
 
+        // Update spherical states dynamically based on selected nucleon type and parameter set
+        calcSphericalStates(S.nucleonType, S.paramSet);
+
         let rawTracks = {}, globalHw0 = 1;
         for (let d of S.dGrid) {
-            let res = nilssonEnergies(d, A); globalHw0 = res.hw0_base;
+            let res = nilssonEnergies(d, A, S.nucleonType, S.paramSet); globalHw0 = res.hw0_base;
             for (let orb of res.orbitals) {
                 let eps = orb[0], m = orb[1], lbl = orb[2];
                 if (!rawTracks[lbl]) rawTracks[lbl] = { deltas: [], e_hw: [], parity: parseInt(lbl.match(/\[(\d)/)[1]) % 2 === 0 ? 1 : -1 };
@@ -367,6 +421,162 @@ export function init() {
     });
 
     window.addEventListener('resize', () => { if (raf) cancelAnimationFrame(raf); resize(); });
+
+    // Start continuous shape viewer rendering animation loop
+    let lastTime = 0;
+    function runShapeAnim(t) {
+        if (!lastTime) lastTime = t;
+        let dt = t - lastTime;
+        lastTime = t;
+        lastShapeAngle += 0.0007 * dt; // slow smooth rotation
+        drawShapeViewer(lastShapeAngle);
+        requestAnimationFrame(runShapeAnim);
+    }
+    requestAnimationFrame(runShapeAnim);
+}
+
+// Density of States KDE helper
+function getDOS(eVal, levs) {
+    let sum = 0;
+    const sigma = 0.15; // in units of hbar*omega_0
+    const factor = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    for (let lv of levs) {
+        let diff = eVal - lv.e;
+        sum += Math.exp(-(diff * diff) / (2 * sigma * sigma)) * factor;
+    }
+    return sum;
+}
+
+let lastShapeAngle = 0;
+function drawShapeViewer(alpha) {
+    let shapeCv = document.getElementById('shapeCv');
+    if (!shapeCv) return;
+    let w = shapeCv.clientWidth;
+    let h = shapeCv.clientHeight;
+    if (w === 0 || h === 0) return; // not visible yet
+    if (shapeCv.width !== w || shapeCv.height !== h) {
+        shapeCv.width = w;
+        shapeCv.height = h;
+    }
+    let sCtx = shapeCv.getContext('2d');
+    sCtx.clearRect(0, 0, w, h);
+
+    let Xc = w / 2;
+    let Yc = h / 2;
+    let R0 = Math.min(w, h) * 0.33;
+
+    // Semi-axes (volume conserving quadrupole deformation terms)
+    let ax = R0 * (1 - S.delta / 3);
+    let ay = ax;
+    let az = R0 * (1 + 2 * S.delta / 3);
+
+    // Tilt around space x-axis
+    let beta = 25 * Math.PI / 180;
+
+    // Projected ellipse horizontal and vertical semi-axes
+    let Rx = ax;
+    let Ry = Math.sqrt(ax * ax * Math.sin(beta) * Math.sin(beta) + az * az * Math.cos(beta) * Math.cos(beta));
+
+    // 1. Draw the rotation axis (faint background line)
+    sCtx.beginPath();
+    sCtx.moveTo(Xc, Yc - Ry * 1.35);
+    sCtx.lineTo(Xc, Yc + Ry * 1.35);
+    sCtx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+    sCtx.lineWidth = 1;
+    sCtx.setLineDash([4, 4]);
+    sCtx.stroke();
+    sCtx.setLineDash([]);
+
+    // Draw little arrow at top of rotation axis
+    sCtx.beginPath();
+    sCtx.moveTo(Xc - 4, Yc - Ry * 1.35 + 4);
+    sCtx.lineTo(Xc, Yc - Ry * 1.35);
+    sCtx.lineTo(Xc + 4, Yc - Ry * 1.35 + 4);
+    sCtx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    sCtx.lineWidth = 1;
+    sCtx.stroke();
+
+    // 2. Draw the shaded ellipsoid body
+    sCtx.save();
+    sCtx.translate(Xc, Yc);
+    sCtx.beginPath();
+    sCtx.ellipse(0, 0, Rx, Ry, 0, 0, Math.PI * 2);
+    
+    let grad = sCtx.createRadialGradient(-Rx * 0.18, -Ry * 0.18, 2, -Rx * 0.08, -Ry * 0.08, Math.max(Rx, Ry) * 1.05);
+    if (S.nucleonType === 'proton') {
+        grad.addColorStop(0, '#e0f2fe'); // Light blue highlight
+        grad.addColorStop(0.3, '#388bfd'); // Accent blue
+        grad.addColorStop(1, '#050a18'); // Shadow
+    } else {
+        grad.addColorStop(0, '#ffe4e6'); // Light red/pink highlight
+        grad.addColorStop(0.3, '#ff7b72'); // Crimson red
+        grad.addColorStop(1, '#180505'); // Shadow
+    }
+    sCtx.fillStyle = grad;
+    sCtx.fill();
+    sCtx.strokeStyle = S.nucleonType === 'proton' ? 'rgba(56, 139, 253, 0.65)' : 'rgba(248, 81, 73, 0.65)';
+    sCtx.lineWidth = 1.8;
+    sCtx.stroke();
+    sCtx.restore();
+
+    // 3. Project and draw grid lines of latitude & longitude
+    function project(lat, lon) {
+        // Rotate around symmetry axis (vertical in space) by adding alpha to longitude
+        let lon_rot = lon + alpha;
+
+        // Position in space frame (where y is vertical, i.e., the symmetry axis)
+        let xs = ax * Math.cos(lat) * Math.cos(lon_rot);
+        let ys = az * Math.sin(lat);
+        let zs = ax * Math.cos(lat) * Math.sin(lon_rot);
+
+        // Tilt by beta around the space x-axis
+        let xp = xs;
+        let yp = ys * Math.cos(beta) - zs * Math.sin(beta);
+        let zp = ys * Math.sin(beta) + zs * Math.cos(beta);
+
+        return { x: xp, y: -yp, z: zp };
+    }
+
+    function drawSeg(p1, p2) {
+        let zAvg = (p1.z + p2.z) / 2;
+        sCtx.beginPath();
+        sCtx.moveTo(Xc + p1.x, Yc + p1.y);
+        sCtx.lineTo(Xc + p2.x, Yc + p2.y);
+        if (zAvg > 0) {
+            sCtx.strokeStyle = S.nucleonType === 'proton' ? 'rgba(165, 214, 255, 0.45)' : 'rgba(255, 188, 190, 0.45)';
+            sCtx.lineWidth = 0.95;
+        } else {
+            sCtx.strokeStyle = S.nucleonType === 'proton' ? 'rgba(56, 139, 253, 0.14)' : 'rgba(248, 81, 73, 0.14)';
+            sCtx.lineWidth = 0.75;
+        }
+        sCtx.stroke();
+    }
+
+    // Latitude lines
+    const latLines = [-Math.PI / 3, -Math.PI / 6, 0, Math.PI / 6, Math.PI / 3];
+    const lonSteps = 40;
+    for (let lat of latLines) {
+        let prev = project(lat, 0);
+        for (let s = 1; s <= lonSteps; s++) {
+            let lon = (s / lonSteps) * Math.PI * 2;
+            let curr = project(lat, lon);
+            drawSeg(prev, curr);
+            prev = curr;
+        }
+    }
+
+    // Longitude lines
+    const lonLines = [0, Math.PI / 6, Math.PI / 3, Math.PI / 2, 2 * Math.PI / 3, 5 * Math.PI / 6];
+    const latSteps = 30;
+    for (let lon of lonLines) {
+        let prev = project(-Math.PI / 2, lon);
+        for (let s = 1; s <= latSteps; s++) {
+            let lat = -Math.PI / 2 + (s / latSteps) * Math.PI;
+            let curr = project(lat, lon);
+            drawSeg(prev, curr);
+            prev = curr;
+        }
+    }
 }
 
 // Helper to select the nearest state at given coordinates
@@ -403,7 +613,7 @@ export function showActiveStateCard(lbl, deltaVal) {
     let paritySymbol = tr.parity > 0 ? '+' : '−';
     
     content.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; padding-right: 24px;">
             <strong style="color: ${tr.parity > 0 ? '#58a6ff' : '#ff7b72'}; font-size: 14px; font-family: var(--font-mono);">${lbl}</strong>
             <span style="font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--text-secondary);">Parity: ${paritySymbol}</span>
         </div>

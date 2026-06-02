@@ -800,3 +800,232 @@ input[type=range]::-webkit-slider-thumb:active {
         padding: 12px;
     }
 }
+
+/* Segmented Button Toggles */
+.toggle-group {
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 2px;
+    height: 40px;
+    align-items: center;
+}
+
+#header-controls-placeholder .toggle-group {
+    height: 32px;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.toggle-btn {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0 12px;
+    white-space: nowrap;
+}
+
+#header-controls-placeholder .toggle-btn {
+    font-size: 12px;
+    border-radius: 14px;
+    padding: 0 10px;
+}
+
+.toggle-btn:hover {
+    color: var(--text-primary);
+}
+
+.toggle-btn.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(56, 139, 253, 0.35);
+}
+
+/* Floating 3D Spheroid Shape Viewer */
+#shape-viewer-container {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    width: 80px;
+    height: 80px;
+    background: rgba(10, 16, 32, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    z-index: 45;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#shape-viewer-container:hover {
+    transform: scale(1.08);
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+}
+
+#shape-viewer-container.expanded {
+    width: 160px;
+    height: 160px;
+    border-radius: 24px;
+}
+
+#shapeCv {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Canvas Floating Button (for DOS Toggle) */
+.canvas-floating-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    height: 36px;
+    padding: 0 14px;
+    background: rgba(10, 16, 32, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 50;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.canvas-floating-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--success);
+    background: rgba(63, 185, 80, 0.08);
+}
+
+.canvas-floating-btn.active {
+    background: rgba(63, 185, 80, 0.18);
+    border-color: var(--success);
+    color: var(--success);
+    box-shadow: 0 0 10px rgba(63, 185, 80, 0.2);
+}
+
+@media (max-width: 767px) {
+    #shape-viewer-container {
+        bottom: 110px; /* Sit above mobile slider panel */
+        left: 12px;
+        width: 70px;
+        height: 70px;
+    }
+    
+    #shape-viewer-container.expanded {
+        width: 130px;
+        height: 130px;
+    }
+}
+
+/* Custom Select Dropdown */
+.custom-select {
+    position: relative;
+    width: 100%;
+    user-select: none;
+}
+
+.custom-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 12px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.custom-select-trigger:hover {
+    border-color: var(--border-color-active);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.custom-select.open .custom-select-trigger {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.custom-select-trigger .arrow {
+    width: 8px;
+    height: 8px;
+    border-left: 2px solid var(--text-secondary);
+    border-bottom: 2px solid var(--text-secondary);
+    transform: rotate(-45deg) translateY(-2px);
+    transition: transform 0.2s ease;
+    margin-right: 4px;
+}
+
+.custom-select.open .custom-select-trigger .arrow {
+    transform: rotate(135deg) translateY(2px);
+}
+
+.custom-select-options {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: rgba(13, 20, 38, 0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    z-index: 150;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.custom-select.open .custom-select-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.custom-option {
+    padding: 10px 14px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.custom-option:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.custom-option.selected {
+    background: var(--accent-glow);
+    color: var(--accent);
+    font-weight: 600;
+}
+

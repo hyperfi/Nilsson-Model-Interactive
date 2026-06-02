@@ -1,5 +1,37 @@
 // Physics utilities and Nilsson model calculations
 const fCache = [1, 1];
+// Proton & Neutron Nilsson model parameter sets (kappa, mu) indexed by principal quantum number N (0 to 7)
+export const PARAMETER_SETS = {
+    universal: {
+        name: "Lund Universal (Default)",
+        proton_kappa: [0.05, 0.05, 0.05, 0.05, 0.05, 0.0637, 0.0637, 0.06],
+        proton_mu:    [0.00, 0.00, 0.00, 0.35, 0.625, 0.600, 0.600, 0.54],
+        neutron_kappa: [0.05, 0.05, 0.05, 0.05, 0.05, 0.0637, 0.0637, 0.06],
+        neutron_mu:    [0.00, 0.00, 0.00, 0.25, 0.450, 0.450, 0.450, 0.40]
+    },
+    rare_earth: {
+        name: "Rare Earth (A ≈ 150 - 180)",
+        proton_kappa: [0.05, 0.05, 0.05, 0.06, 0.0637, 0.0637, 0.0637, 0.06],
+        proton_mu:    [0.00, 0.00, 0.00, 0.35, 0.600, 0.600, 0.600, 0.54],
+        neutron_kappa: [0.05, 0.05, 0.05, 0.06, 0.0637, 0.0637, 0.0637, 0.06],
+        neutron_mu:    [0.00, 0.00, 0.00, 0.25, 0.390, 0.420, 0.440, 0.35]
+    },
+    actinide: {
+        name: "Actinides (A ≈ 250)",
+        proton_kappa: [0.05, 0.05, 0.05, 0.05, 0.0577, 0.0577, 0.0577, 0.0577],
+        proton_mu:    [0.00, 0.00, 0.00, 0.35, 0.650, 0.650, 0.650, 0.650],
+        neutron_kappa: [0.05, 0.05, 0.05, 0.05, 0.0635, 0.0635, 0.0635, 0.062],
+        neutron_mu:    [0.00, 0.00, 0.00, 0.25, 0.390, 0.400, 0.400, 0.30]
+    },
+    light_sd: {
+        name: "Light Nuclei (A ≈ 20 - 40)",
+        proton_kappa: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
+        proton_mu:    [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        neutron_kappa: [0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05],
+        neutron_mu:    [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
+    }
+};
+
 export function fact(n) { if (n < 0) return 0; while (fCache.length <= n) fCache.push(fCache[fCache.length - 1] * fCache.length); return fCache[n]; }
 function cgDelta(j1, j2, j3) { return Math.sqrt((fact(j1 + j2 - j3) * fact(j1 - j2 + j3) * fact(-j1 + j2 + j3)) / fact(j1 + j2 + j3 + 1)); }
 function CG(j1, j2, j3, m1, m2, m3) {
@@ -49,9 +81,10 @@ export function generateAsymptoticLabels(N, Omega) {
     return valid_states.sort((a, b) => b[0] - a[0]).map(s => `${Math.round(Omega * 2)}/2[${N}${s[0]}${s[1]}]`);
 }
 
-export function nilssonEnergies(delta, A) {
-    const rkappa = [0.05, 0.05, 0.05, 0.05, 0.05, 0.0637, 0.0637, 0.06];
-    const rmu = [0.00, 0.00, 0.00, 0.35, 0.625, 0.600, 0.600, 0.54];
+export function nilssonEnergies(delta, A, nucleonType = 'proton', paramSet = 'universal') {
+    const pSet = PARAMETER_SETS[paramSet] || PARAMETER_SETS.universal;
+    const rkappa = (nucleonType === 'proton') ? pSet.proton_kappa : pSet.neutron_kappa;
+    const rmu = (nucleonType === 'proton') ? pSet.proton_mu : pSet.neutron_mu;
     let hw0_base = 41.0 * Math.pow(A, -1.0 / 3.0);
     let fdel = Math.pow(Math.pow(1.0 + (2.0 / 3.0) * delta, 2.0) * (1.0 - (4.0 / 3.0) * delta), -1.0 / 6.0);
     let hw0_mev = hw0_base * fdel;
@@ -96,9 +129,10 @@ export function nilssonEnergies(delta, A) {
 // Spherical states helper
 export let sphericalStates = [];
 export const MAGIC = new Set([2, 8, 20, 28, 50, 82, 126, 184]);
-export function calcSphericalStates() {
-    const rkappa = [0.05, 0.05, 0.05, 0.05, 0.05, 0.0637, 0.0637, 0.06];
-    const rmu = [0.00, 0.00, 0.00, 0.35, 0.625, 0.600, 0.600, 0.54];
+export function calcSphericalStates(nucleonType = 'proton', paramSet = 'universal') {
+    const pSet = PARAMETER_SETS[paramSet] || PARAMETER_SETS.universal;
+    const rkappa = (nucleonType === 'proton') ? pSet.proton_kappa : pSet.neutron_kappa;
+    const rmu = (nucleonType === 'proton') ? pSet.proton_mu : pSet.neutron_mu;
     sphericalStates = [];
     for (let N = 0; N < 8; N++) {
         let k = rkappa[N], mu = rmu[N];
