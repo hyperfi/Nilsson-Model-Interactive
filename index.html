@@ -2,69 +2,149 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
     <title>☢ Live Nilsson Diagram Engine</title>
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="bar">
-        <span class="ttl">☢ Nilsson Live</span>
-        <div class="sep"></div>
-        <div class="g">
-            <label for="inpA">A =</label>
-            <input type="number" id="inpA" value="80" min="1" max="300">
+    <!-- Header bar -->
+    <header id="header">
+        <div class="logo">
+            <span class="logo-icon">☢</span>
+            <span class="logo-text">Nilsson Live</span>
         </div>
-        <div class="g">
-            <label for="inpDMin">δ Min =</label>
-            <input type="number" id="inpDMin" value="-0.5" step="0.1">
-        </div>
-        <div class="g">
-            <label for="inpDMax">δ Max =</label>
-            <input type="number" id="inpDMax" value="0.5" step="0.1">
-        </div>
-        <button class="btn active" id="btnComp">⚡ Compute</button>
-        <div class="sep"></div>
-        <div class="g">
-            <label for="selUnit">Units =</label>
-            <select id="selUnit">
-                <option value="hw0">ℏω₀</option>
-                <option value="MeV">MeV</option>
-            </select>
-        </div>
-        <div class="sep"></div>
-        <div class="g">
-            <label for="ni">N =</label>
-            <input type="number" id="ni" value="28" min="0" max="500">
-        </div>
-        <div class="g">
-            <label for="ds">δ =</label>
-            <input type="range" id="ds" min="-0.50" max="0.50" step="0.005" value="0.00">
-            <span class="dv" id="dv">δ = 0.000</span>
-        </div>
-        <div class="sep"></div>
-        <button class="btn" id="btnZoom" title="Drag a rectangle on the diagram to zoom">🔍 Zoom</button>
-        <button class="btn" id="btnBack" style="display:none">↩ Back</button>
-        <button class="btn danger" id="btnFull" style="display:none">⊠ Full</button>
-        <span id="sm">Ready</span>
-    </div>
+        
+        <!-- Placeholder for desktop parameters -->
+        <div id="header-controls-placeholder"></div>
 
+        <div class="header-status" id="sm">Ready</div>
+        <div class="header-actions">
+            <button class="header-btn" id="btnToggleSettings" title="Parameters">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81C14.36,2.58,14.17,2.4,13.93,2.4 h-3.87c-0.24,0-0.43,0.18-0.47,0.41L9.22,5.35C8.63,5.59,8.1,5.91,7.6,6.29L5.21,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.7,8.87 C2.59,9.08,2.64,9.34,2.82,9.48l2.03,1.58C4.8,11.36,4.78,11.68,4.78,12c0,0.32,0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.47,0.41h3.87c0.24,0,0.43-0.18,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+            </button>
+            <button class="header-btn" id="btnToggleLevels" title="Level Filling">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
     <div id="main">
+        <!-- Left Settings Drawer -->
+        <aside id="settings-drawer" class="drawer">
+            <div class="drawer-header">
+                <h3>Parameters</h3>
+                <button class="drawer-close" id="settingsCloseBtn">&times;</button>
+            </div>
+            <div class="drawer-body">
+                <div class="control-section">
+                    <h4>System Scale</h4>
+                    <div id="drawer-controls-placeholder">
+                        <div id="navbar-controls-group">
+                            <div class="control-item">
+                                <label for="inpA">Mass Number (A)</label>
+                                <input type="number" id="inpA" value="80" min="1" max="300">
+                            </div>
+                            <div class="control-item">
+                                <label for="selUnit">Energy Units</label>
+                                <select id="selUnit">
+                                    <option value="hw0">ℏω₀</option>
+                                    <option value="MeV">MeV</option>
+                                </select>
+                            </div>
+                            <div class="control-item">
+                                <label for="ni">Nucleon Number (N)</label>
+                                <input type="number" id="ni" value="28" min="0" max="500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h4>Deformation Limits</h4>
+                    <div class="control-row">
+                        <div class="control-item">
+                            <label for="inpDMin">δ Min</label>
+                            <input type="number" id="inpDMin" value="-0.5" step="0.1">
+                        </div>
+                        <div class="control-item">
+                            <label for="inpDMax">δ Max</label>
+                            <input type="number" id="inpDMax" value="0.5" step="0.1">
+                        </div>
+                    </div>
+                    <button class="btn primary active" id="btnComp">⚡ Re-Compute Engine</button>
+                </div>
+
+                <div class="control-section">
+                    <h4>Diagram Operations</h4>
+                    <div class="view-btn-group">
+                        <button class="btn" id="btnZoom" title="Drag a rectangle on the diagram to zoom">🔍 Zoom Mode</button>
+                        <button class="btn" id="btnBack" style="display:none">↩ Step Back</button>
+                        <button class="btn danger" id="btnFull" style="display:none">⊠ Reset Zoom</button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Canvas and central plot view -->
         <div id="wrap">
             <canvas id="cv"></canvas>
-            <div id="overlay">Computing Quantum States...</div>
-        </div>
-        <div id="panel">
-            <div class="ph">Level Filling</div>
-            <div id="ll"></div>
-            <div id="gb">
-                <div class="gl">Shell gap (Fermi→next):</div>
-                <div class="gv" id="gv">—</div>
-                <div class="fl">Fermi energy:</div>
-                <div class="fv" id="fv">—</div>
+            <div id="overlay">
+                <div class="loader"></div>
+                <span>Computing Quantum States...</span>
+            </div>
+
+            <!-- Floating Slider Panel (Primary control for Deformation) -->
+            <div id="floating-slider-panel">
+                <div class="slider-group">
+                    <label for="ds">Quadrupole Deformation (δ)</label>
+                    <div class="slider-control">
+                        <input type="range" id="ds" min="-0.50" max="0.50" step="0.005" value="0.00">
+                        <span class="dv" id="dv">δ = 0.000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Active State Card for mobile view when a state is selected -->
+            <div id="active-state-card" class="hidden">
+                <div class="card-close" id="cardCloseBtn">&times;</div>
+                <div class="card-content" id="cardContent">
+                    <div class="card-placeholder">Tap a state line to view quantum numbers</div>
+                </div>
             </div>
         </div>
+
+        <!-- Right Level Filling Drawer -->
+        <aside id="levels-drawer" class="drawer">
+            <div class="drawer-header">
+                <h3>Level Filling Log</h3>
+                <button class="drawer-close" id="levelsCloseBtn">&times;</button>
+            </div>
+            <div class="drawer-body">
+                <div id="ll"></div>
+                <div id="gb">
+                    <div class="gb-row">
+                        <span class="gl">Shell gap (Fermi→next):</span>
+                        <span class="gv" id="gv">—</span>
+                    </div>
+                    <div class="gb-row">
+                        <span class="fl">Fermi energy:</span>
+                        <span class="fv" id="fv">—</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </div>
+
+    <!-- Scrim overlay -->
+    <div id="scrim"></div>
+
+    <!-- Tooltip for hover cases (mainly desktop) -->
     <div id="tip"></div>
 
     <script type="module" src="main.js"></script>

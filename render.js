@@ -4,11 +4,11 @@ import { nilssonEnergies, sphericalStates, MAGIC, calcSphericalStates } from './
 export const S = {
     tracks: null, dGrid: [], hw0: 1, fullDMin: -0.4, fullDMax: 0.55, fullYMin: 1.9, fullYMax: 5.7,
     vDMin: -0.4, vDMax: 0.55, vYMin: 1.9, vYMax: 5.7, zoomHist: [], zoomMode: false, zoomDrag: null,
-    delta: 0, N: 28, hover: null, unit: 'hw0'
+    delta: 0, N: 28, hover: null, selected: null, unit: 'hw0'
 };
 
 let cv = null, ctx = null;
-const M = { L: 66, R: 92, T: 28, B: 46 };
+let M = { L: 66, R: 92, T: 28, B: 46 };
 let raf = null;
 
 function lerp(tr, d) {
@@ -26,7 +26,21 @@ function doFill(delta, N) {
 
 function niceStep(range, target) { let raw = range / target, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p; return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p; }
 
-export function resize() { if (!cv) return; let wr = document.getElementById('wrap'); cv.width = wr.clientWidth; cv.height = wr.clientHeight; draw(); }
+export function resize() { 
+    if (!cv) return; 
+    let wr = document.getElementById('wrap'); 
+    cv.width = wr.clientWidth; 
+    cv.height = wr.clientHeight; 
+    
+    // Dynamic responsive margins to expand diagram area on narrow mobile viewports
+    if (cv.width < 768) {
+        M.L = 38; M.R = 12; M.T = 15; M.B = 92;
+    } else {
+        M.L = 66; M.R = 40; M.T = 28; M.B = 46;
+    }
+    
+    draw(); 
+}
 
 const cpx = d => M.L + (d - S.vDMin) / (S.vDMax - S.vDMin) * (cv.width - M.L - M.R);
 const cpy = e => M.T + (1 - (e - S.vYMin) / (S.vYMax - S.vYMin)) * (cv.height - M.T - M.B);
@@ -57,11 +71,11 @@ function _draw() {
 
     for (let pass of [0, 1]) {
         for (let [lbl, tr] of Object.entries(S.tracks)) {
-            let isF = fm.has(lbl), isH = lbl === S.hover;
+            let isF = fm.has(lbl), isH = (lbl === S.hover || lbl === S.selected);
             if (pass === 0 && (isF || isH)) continue; if (pass === 1 && !isF && !isH) continue;
             ctx.beginPath();
             for (let i = 0; i < tr.deltas.length; i++) { let x = cpx(tr.deltas[i]), y = cpy(tr.e_hw[i]); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
-            if (isH && !isF) { ctx.setLineDash([]); ctx.strokeStyle = '#ffa657'; ctx.lineWidth = 2.4; }
+            if (isH) { ctx.setLineDash([]); ctx.strokeStyle = '#ffa657'; ctx.lineWidth = 2.8; }
             else if (isF) { ctx.setLineDash(tr.parity > 0 ? [] : [5, 4]); ctx.strokeStyle = tr.parity > 0 ? '#58a6ff' : '#ff7b72'; ctx.lineWidth = 2.0; }
             else { ctx.setLineDash(tr.parity > 0 ? [] : [5, 4]); ctx.strokeStyle = tr.parity > 0 ? 'rgba(56,139,253,.22)' : 'rgba(248,81,73,.22)'; ctx.lineWidth = 0.9; }
             ctx.stroke(); ctx.setLineDash([]);
@@ -164,17 +178,39 @@ function _draw() {
 }
 
 function updatePanel(levs, fm, fermiE, uScale, unitStr) {
-    let ll = document.getElementById('ll'); ll.innerHTML = ''; let cumN = 0, lastFilled = null;
+    let ll = document.getElementById('ll'); 
+    ll.innerHTML = ''; 
+    let cumN = 0, lastFilled = null, selectedEl = null;
     for (let lv of levs) {
-        cumN += 2; let isFl = fm.has(lv.lbl), isMg = MAGIC.has(cumN);
+        cumN += 2; 
+        let isFl = fm.has(lv.lbl), isMg = MAGIC.has(cumN);
         let div = document.createElement('div');
-        div.className = 'lv' + (isFl ? (lv.par > 0 ? ' fp' : ' fn') : ' em') + (isMg ? ' mg' : '');
+        let isSel = (lv.lbl === S.hover || lv.lbl === S.selected);
+        div.className = 'lv' + 
+            (isFl ? (lv.par > 0 ? ' fp' : ' fn') : ' em') + 
+            (isMg ? ' mg' : '') + 
+            (isSel ? ' sel-active' : '');
+        
         div.textContent = lv.lbl + '  (' + cumN + ')' + (isMg ? ' \u25cf' : '');
         div.addEventListener('mouseenter', () => { S.hover = lv.lbl; draw(); });
         div.addEventListener('mouseleave', () => { S.hover = null; draw(); });
-        ll.appendChild(div); if (isFl) lastFilled = div;
+        div.addEventListener('click', () => {
+            S.selected = lv.lbl;
+            showActiveStateCard(lv.lbl, S.delta);
+            draw();
+        });
+        ll.appendChild(div); 
+        if (isFl) lastFilled = div;
+        if (isSel) selectedEl = div;
     }
-    if (lastFilled) lastFilled.scrollIntoView({ block: 'nearest' });
+    
+    // Auto-scroll the selected/hovered element into view, otherwise default to the last filled level
+    if (selectedEl) {
+        selectedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    } else if (lastFilled) {
+        lastFilled.scrollIntoView({ block: 'nearest' });
+    }
+
     let fArr = levs.filter(l => fm.has(l.lbl)), nArr = levs.filter(l => !fm.has(l.lbl));
     document.getElementById('gv').textContent = (fArr.length && nArr.length) ? '\u0394\u03b5 = ' + ((nArr[0].e - fArr[fArr.length - 1].e) * uScale).toFixed(4) + unitStr : '—';
     document.getElementById('fv').textContent = fermiE !== null ? (fermiE * uScale).toFixed(4) + unitStr : '—';
@@ -238,12 +274,13 @@ export function computeData() {
 export function init() {
     cv = document.getElementById('cv'); ctx = cv.getContext('2d');
 
-    // Canvas interactions
+    // Canvas Mouse interactions
     cv.addEventListener('mousedown', e => {
         if (e.button !== 0 || !S.zoomMode) return;
         let { cx, cy } = plotPos(e); if (!inPlot(cx, cy)) return;
         S.zoomDrag = { x0: cx, y0: cy, x1: cx, y1: cy }; e.preventDefault();
     });
+    
     cv.addEventListener('mousemove', e => {
         let { cx, cy } = plotPos(e), tip = document.getElementById('tip');
         if (S.zoomMode) {
@@ -262,16 +299,118 @@ export function init() {
             tip.innerHTML = '<strong style="color:' + (tr.parity > 0 ? '#58a6ff' : '#ff7b72') + '">' + best + '</strong><br>E = ' + (te * uScale).toFixed(4) + unitStr + '<br>\u03c0 = ' + (tr.parity > 0 ? '+' : '\u2212') + '  \u00b7  \u03b4 = ' + dH.toFixed(3);
         } else { tip.style.display = 'none'; }
     });
+    
     cv.addEventListener('mouseup', e => {
         if (!S.zoomMode || !S.zoomDrag) return; let { x0, y0, x1, y1 } = S.zoomDrag; S.zoomDrag = null;
         if (Math.abs(x1 - x0) < 10 || Math.abs(y1 - y0) < 10) { draw(); return; }
         applyZoom(fX(Math.min(x0, x1)), fX(Math.max(x0, x1)), fY(Math.max(y0, y1)), fY(Math.min(y0, y1)));
     });
+    
     cv.addEventListener('mouseleave', () => { if (S.zoomDrag) { S.zoomDrag = null; draw(); } S.hover = null; document.getElementById('tip').style.display = 'none'; if (!S.zoomMode) draw(); });
 
+    // Select state on click (Unified Desktop + Mobile behavior)
+    cv.addEventListener('click', e => {
+        if (S.zoomMode) return;
+        let { cx, cy } = plotPos(e);
+        if (!inPlot(cx, cy)) return;
+        selectStateAt(cx, cy, false);
+    });
+
+    // Canvas Touch Interactions (Mobile Support)
+    cv.addEventListener('touchstart', e => {
+        let touch = e.touches[0];
+        let { cx, cy } = plotPos(touch);
+        if (!inPlot(cx, cy)) return;
+        if (S.zoomMode) {
+            S.zoomDrag = { x0: cx, y0: cy, x1: cx, y1: cy };
+            e.preventDefault(); // Prevent page zooming/scrolling gestures while drawing zoom box
+        } else {
+            selectStateAt(cx, cy, true);
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    cv.addEventListener('touchmove', e => {
+        if (!S.zoomDrag) return;
+        let touch = e.touches[0];
+        let { cx, cy } = plotPos(touch);
+        let c = clampPlot(cx, cy);
+        S.zoomDrag.x1 = c.cx;
+        S.zoomDrag.y1 = c.cy;
+        draw();
+        e.preventDefault();
+    }, { passive: false });
+
+    cv.addEventListener('touchend', e => {
+        if (!S.zoomMode || !S.zoomDrag) return;
+        let { x0, y0, x1, y1 } = S.zoomDrag;
+        S.zoomDrag = null;
+        if (Math.abs(x1 - x0) < 10 || Math.abs(y1 - y0) < 10) { draw(); return; }
+        applyZoom(fX(Math.min(x0, x1)), fX(Math.max(x0, x1)), fY(Math.max(y0, y1)), fY(Math.min(y0, y1)));
+        e.preventDefault();
+    }, { passive: false });
+
     // Input listeners
-    document.getElementById('ds').addEventListener('input', function () { S.delta = parseFloat(this.value); document.getElementById('dv').textContent = '\u03b4 = ' + S.delta.toFixed(3); draw(); });
-    document.getElementById('ni').addEventListener('input', function () { S.N = Math.max(0, parseInt(this.value) || 0); draw(); });
+    document.getElementById('ds').addEventListener('input', function () { 
+        S.delta = parseFloat(this.value); 
+        document.getElementById('dv').textContent = '\u03b4 = ' + S.delta.toFixed(3); 
+        // If a state is selected, update its card dynamically with the new deformation
+        if (S.selected) {
+            showActiveStateCard(S.selected, S.delta);
+        }
+        draw(); 
+    });
+    
+    document.getElementById('ni').addEventListener('input', function () { 
+        S.N = Math.max(0, parseInt(this.value) || 0); 
+        draw(); 
+    });
 
     window.addEventListener('resize', () => { if (raf) cancelAnimationFrame(raf); resize(); });
+}
+
+// Helper to select the nearest state at given coordinates
+export function selectStateAt(cx, cy, isTouch = false) {
+    if (!S.tracks) return;
+    let dH = fX(cx);
+    let best = null;
+    let bestD = Infinity;
+    let searchRadius = isTouch ? 22 : 11; // Expanded hit target on touch screens
+    for (let [lbl, tr] of Object.entries(S.tracks)) {
+        let dist = Math.abs(cpy(lerp(tr, dH)) - cy);
+        if (dist < searchRadius && dist < bestD) {
+            bestD = dist;
+            best = lbl;
+        }
+    }
+    if (best) {
+        S.selected = best;
+        showActiveStateCard(best, dH);
+        draw();
+    }
+}
+
+// Display selected state properties on the floating active state card
+export function showActiveStateCard(lbl, deltaVal) {
+    const card = document.getElementById('active-state-card');
+    const content = document.getElementById('cardContent');
+    if (!card || !content) return;
+    
+    let tr = S.tracks[lbl];
+    let te = lerp(tr, deltaVal);
+    let uScale = S.unit === 'MeV' ? S.hw0 : 1;
+    let unitStr = S.unit === 'MeV' ? ' MeV' : ' ℏω₀';
+    let paritySymbol = tr.parity > 0 ? '+' : '−';
+    
+    content.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <strong style="color: ${tr.parity > 0 ? '#58a6ff' : '#ff7b72'}; font-size: 14px; font-family: var(--font-mono);">${lbl}</strong>
+            <span style="font-size: 11px; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; color: var(--text-secondary);">Parity: ${paritySymbol}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: var(--font-mono); font-size: 12px; margin-top: 4px;">
+            <div>Energy: <span style="color: #a5d6ff;">${(te * uScale).toFixed(4)}${unitStr}</span></div>
+            <div style="text-align: right;">Deformation δ: <span style="color: var(--accent);">${deltaVal.toFixed(3)}</span></div>
+        </div>
+    `;
+    card.classList.remove('hidden');
 }
